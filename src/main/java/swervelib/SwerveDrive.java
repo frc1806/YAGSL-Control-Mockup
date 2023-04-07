@@ -12,7 +12,9 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -24,9 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import swervelib.imu.SwerveIMU;
-import swervelib.math.SwerveKinematics2;
 import swervelib.math.SwerveMath;
-import swervelib.math.SwerveModuleState2;
 import swervelib.parser.SwerveControllerConfiguration;
 import swervelib.parser.SwerveDriveConfiguration;
 import swervelib.simulation.SwerveIMUSimulation;
@@ -42,7 +42,7 @@ public class SwerveDrive
   /**
    * Swerve Kinematics object utilizing second order kinematics.
    */
-  public final  SwerveKinematics2        kinematics;
+  public final  SwerveDriveKinematics    kinematics;
   /**
    * Swerve drive configuration.
    */
@@ -111,7 +111,7 @@ public class SwerveDrive
     swerveDriveConfiguration = config;
     swerveController = new SwerveController(controllerConfig);
     // Create Kinematics from swerve module locations.
-    kinematics = new SwerveKinematics2(config.moduleLocationsMeters);
+    kinematics = new SwerveDriveKinematics(config.moduleLocationsMeters);
 
     // Create an integrator for angle if the robot is being simulated to emulate an IMU
     // If the robot is real, instantiate the IMU instead.
@@ -195,14 +195,14 @@ public class SwerveDrive
   }
 
   /**
-   * The primary method for controlling the drivebase. Takes a Translation2d and a rotation rate, and calculates and
+   * The primary method for controlling the drivebase. Takes a {@link Translation2d} and a rotation rate, and calculates and
    * commands module states accordingly. Can use either open-loop or closed-loop velocity control for the wheel
    * velocities. Also has field- and robot-relative modes, which affect how the translation vector is used.
    *
    * @param translation       {@link Translation2d} that is the commanded linear velocity of the robot, in meters per
-   *                          second. In robot-relative mode, positive x is torwards the bow (front) and positive y is
-   *                          torwards port (left). In field-relative mode, positive x is away from the alliance wall
-   *                          (field North) and positive y is torwards the left wall when looking through the driver
+   *                          second. In robot-relative mode, positive x is towards the bow (front) and positive y is
+   *                          towards port (left). In field-relative mode, positive x is away from the alliance wall
+   *                          (field North) and positive y is towards the left wall when looking through the driver
    *                          station glass (field West).
    * @param rotation          Robot angular rate, in radians per second. CCW positive. Unaffected by field/robot
    *                          relativity.
@@ -220,6 +220,8 @@ public class SwerveDrive
         ? ChassisSpeeds.fromFieldRelativeSpeeds(
             translation.getX(), translation.getY(), rotation, getYaw())
         : new ChassisSpeeds(translation.getX(), translation.getY(), rotation);
+
+    velocity = SwerveMath.correctForDynamics(velocity);
 
     // Heading Angular Velocity Deadband, might make a configuration option later.
     // Originally made by Team 1466 Webb Robotics.
@@ -248,7 +250,7 @@ public class SwerveDrive
     }
 
     // Calculate required module states via kinematics
-    SwerveModuleState2[] swerveModuleStates = kinematics.toSwerveModuleStates(velocity);
+    SwerveModuleState[] swerveModuleStates = kinematics.toSwerveModuleStates(velocity);
 
     setRawModuleStates(swerveModuleStates, isOpenLoop);
   }
@@ -281,19 +283,19 @@ public class SwerveDrive
    * @param desiredStates A list of SwerveModuleStates to send to the modules.
    * @param isOpenLoop    Whether to use closed-loop velocity control. Set to true to disable closed-loop.
    */
-  private void setRawModuleStates(SwerveModuleState2[] desiredStates, boolean isOpenLoop)
+  private void setRawModuleStates(SwerveModuleState[] desiredStates, boolean isOpenLoop)
   {
     // Desaturates wheel speeds
     if (swerveDriveConfiguration.attainableMaxTranslationalSpeedMetersPerSecond != 0 ||
         swerveDriveConfiguration.attainableMaxRotationalVelocityRadiansPerSecond != 0)
     {
-      SwerveKinematics2.desaturateWheelSpeeds(desiredStates, getRobotVelocity(),
-                                              swerveDriveConfiguration.maxSpeed,
-                                              swerveDriveConfiguration.attainableMaxTranslationalSpeedMetersPerSecond,
-                                              swerveDriveConfiguration.attainableMaxRotationalVelocityRadiansPerSecond);
+      SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, getRobotVelocity(),
+                                                  swerveDriveConfiguration.maxSpeed,
+                                                  swerveDriveConfiguration.attainableMaxTranslationalSpeedMetersPerSecond,
+                                                  swerveDriveConfiguration.attainableMaxRotationalVelocityRadiansPerSecond);
     } else
     {
-      SwerveKinematics2.desaturateWheelSpeeds(desiredStates, swerveDriveConfiguration.maxSpeed);
+      SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, swerveDriveConfiguration.maxSpeed);
     }
 
     // Sets states
@@ -326,7 +328,7 @@ public class SwerveDrive
    * @param desiredStates A list of SwerveModuleStates to send to the modules.
    * @param isOpenLoop    Whether to use closed-loop velocity control. Set to true to disable closed-loop.
    */
-  public void setModuleStates(SwerveModuleState2[] desiredStates, boolean isOpenLoop)
+  public void setModuleStates(SwerveModuleState[] desiredStates, boolean isOpenLoop)
   {
     setRawModuleStates(kinematics.toSwerveModuleStates(kinematics.toChassisSpeeds(desiredStates)), isOpenLoop);
   }
@@ -410,9 +412,9 @@ public class SwerveDrive
    *
    * @return A list of SwerveModuleStates containing the current module states
    */
-  public SwerveModuleState2[] getStates()
+  public SwerveModuleState[] getStates()
   {
-    SwerveModuleState2[] states = new SwerveModuleState2[swerveDriveConfiguration.moduleCount];
+    SwerveModuleState[] states = new SwerveModuleState[swerveDriveConfiguration.moduleCount];
     for (SwerveModule module : swerveModules)
     {
       states[module.moduleNumber] = module.getState();
@@ -455,7 +457,7 @@ public class SwerveDrive
     {
       simIMU.setAngle(0);
     }
-    swerveController.lastAngleScalar = 0;
+    swerveController.lastAngleRadians = 0;
     lastHeadingRadians = 0;
     resetOdometry(new Pose2d(getPose().getTranslation(), new Rotation2d()));
   }
@@ -568,7 +570,7 @@ public class SwerveDrive
   /**
    * Set the maximum speed of the drive motors, modified {@link SwerveControllerConfiguration#maxSpeed} and
    * {@link SwerveDriveConfiguration#maxSpeed} which is used for the
-   * {@link SwerveDrive#setRawModuleStates(SwerveModuleState2[], boolean)} function and
+   * {@link SwerveDrive#setRawModuleStates(SwerveModuleState[], boolean)} function and
    * {@link SwerveController#getTargetSpeeds(double, double, double, double, double)} functions. This function overrides
    * what was placed in the JSON and could damage your motor/robot if set too high or unachievable rates.
    *
@@ -594,7 +596,7 @@ public class SwerveDrive
   /**
    * Set the maximum speed of the drive motors, modified {@link SwerveControllerConfiguration#maxSpeed} and
    * {@link SwerveDriveConfiguration#maxSpeed} which is used for the
-   * {@link SwerveDrive#setRawModuleStates(SwerveModuleState2[], boolean)} function and
+   * {@link SwerveDrive#setRawModuleStates(SwerveModuleState[], boolean)} function and
    * {@link SwerveController#getTargetSpeeds(double, double, double, double, double)} functions. This function overrides
    * what was placed in the JSON and could damage your motor/robot if set too high or unachievable rates. Overwrites the
    * {@link SwerveModule#feedforward}.
@@ -615,8 +617,8 @@ public class SwerveDrive
     // Sets states
     for (SwerveModule swerveModule : swerveModules)
     {
-      SwerveModuleState2 desiredState =
-          new SwerveModuleState2(0, swerveModule.configuration.moduleLocation.getAngle(), 0);
+      SwerveModuleState desiredState =
+          new SwerveModuleState(0, swerveModule.configuration.moduleLocation.getAngle());
       if (SwerveDriveTelemetry.verbosity.ordinal() >= TelemetryVerbosity.HIGH.ordinal())
       {
         SwerveDriveTelemetry.desiredStates[swerveModule.moduleNumber * 2] =
@@ -702,8 +704,8 @@ public class SwerveDrive
     double sumOmega = 0;
     for (SwerveModule module : swerveModules)
     {
-      SwerveModuleState2 moduleState = module.getState();
-      sumOmega += Math.abs(moduleState.omegaRadPerSecond);
+      SwerveModuleState moduleState = module.getState();
+      sumOmega += Math.abs(moduleState.speedMetersPerSecond);
       if (SwerveDriveTelemetry.verbosity == TelemetryVerbosity.HIGH)
       {
         SmartDashboard.putNumber(

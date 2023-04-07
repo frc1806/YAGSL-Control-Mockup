@@ -33,16 +33,6 @@ public class PhysicalPropertiesJson
    * The grip tape coefficient of friction on carpet. Used to calculate the practical maximum acceleration.
    */
   public double            wheelGripCoefficientOfFriction = 1.19;
-  /**
-   * Angle motor free speed rotations per minute.
-   */
-  public double            angleMotorFreeSpeedRPM;
-  /**
-   * Angle motor kV used for second order kinematics to tune the feedforward, this variable should be adjusted so that
-   * your drive train does not drift towards the direction you are rotating while you translate. When set to 0 the
-   * calculated kV will be used.
-   */
-  public double            angleMotorsKV                  = 0;
 
   /**
    * Create the physical characteristics based off the parsed data.
@@ -55,7 +45,6 @@ public class PhysicalPropertiesJson
     return new SwerveModulePhysicalCharacteristics(
         gearRatio.drive,
         gearRatio.angle,
-        angleMotorFreeSpeedRPM,
         Units.inchesToMeters(wheelDiameter),
         wheelGripCoefficientOfFriction,
         optimalVoltage,
@@ -64,8 +53,7 @@ public class PhysicalPropertiesJson
         rampRate.drive,
         rampRate.angle,
         encoderPulsePerRotation.drive,
-        encoderPulsePerRotation.angle,
-        angleMotorsKV);
+        encoderPulsePerRotation.angle);
   }
 }
 

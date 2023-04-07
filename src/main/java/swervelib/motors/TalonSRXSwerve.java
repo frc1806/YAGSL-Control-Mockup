@@ -305,11 +305,17 @@ public class TalonSRXSwerve extends SwerveMotor
 
     burnFlash();
 
-    motor.set(
-        isDriveMotor ? ControlMode.Velocity : ControlMode.Position,
-        convertToNativeSensorUnits(setpoint, position),
-        DemandType.ArbitraryFeedForward,
-        feedforward / nominalVoltage);
+    if (isDriveMotor)
+    {
+      motor.set(
+          ControlMode.Velocity,
+          convertToNativeSensorUnits(setpoint, position),
+          DemandType.ArbitraryFeedForward,
+          feedforward / nominalVoltage);
+    } else
+    {
+      motor.set(ControlMode.Position, convertToNativeSensorUnits(setpoint, position));
+    }
   }
 
   /**

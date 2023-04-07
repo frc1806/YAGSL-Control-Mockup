@@ -64,7 +64,7 @@ public class TalonFXSwerve extends SwerveMotor
 
     if (SwerveDriveTelemetry.isSimulation)
     {
-      PhysicsSim.getInstance().addTalonFX(motor, .25, 6800);
+      PhysicsSim.getInstance().addTalonFX(motor, .25, 68000);
     }
   }
 
@@ -243,7 +243,7 @@ public class TalonFXSwerve extends SwerveMotor
   @Override
   public void setInverted(boolean inverted)
   {
-    Timer.delay(1);
+    Timer.delay(.1);
     motor.setInverted(inverted);
   }
 
@@ -314,11 +314,19 @@ public class TalonFXSwerve extends SwerveMotor
 
     burnFlash();
 
-    motor.set(
-        isDriveMotor ? ControlMode.Velocity : ControlMode.Position,
-        convertToNativeSensorUnits(setpoint, position),
-        DemandType.ArbitraryFeedForward,
-        feedforward / nominalVoltage);
+    if (isDriveMotor)
+    {
+      motor.set(
+          ControlMode.Velocity,
+          convertToNativeSensorUnits(setpoint, position),
+          DemandType.ArbitraryFeedForward,
+          feedforward / nominalVoltage);
+    } else
+    {
+      motor.set(
+          ControlMode.Position,
+          convertToNativeSensorUnits(setpoint, position));
+    }
   }
 
   /**

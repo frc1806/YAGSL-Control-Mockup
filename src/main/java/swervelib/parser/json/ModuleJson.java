@@ -44,10 +44,6 @@ public class ModuleJson
    */
   public double        angleEncoderPulsePerRevolution = 0;
   /**
-   * Angle motor free speed RPM.
-   */
-  public double        angleMotorFreeSpeedRPM         = 0;
-  /**
    * The location of the swerve module from the center of the robot in inches.
    */
   public LocationJson  location;
@@ -92,7 +88,6 @@ public class ModuleJson
         inverted.drive,
         inverted.angle,
         angleEncoderPulsePerRevolution == 0 ? physicalCharacteristics.angleEncoderPulsePerRotation
-                                            : angleEncoderPulsePerRevolution,
-        angleMotorFreeSpeedRPM == 0 ? physicalCharacteristics.angleMotorFreeSpeedRPM : angleMotorFreeSpeedRPM);
+                                            : angleEncoderPulsePerRevolution);
   }
 }

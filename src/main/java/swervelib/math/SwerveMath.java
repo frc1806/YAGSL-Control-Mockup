@@ -4,7 +4,9 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.List;
 import swervelib.SwerveController;
@@ -19,22 +21,6 @@ import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
  */
 public class SwerveMath
 {
-
-  /**
-   * Calculate the angle kV which will be multiplied by the radians per second for the feedforward. Volt * seconds /
-   * degree == (maxVolts) / (maxSpeed)
-   *
-   * @param optimalVoltage    Optimal voltage to use when calculating the angle kV.
-   * @param motorFreeSpeedRPM Motor free speed in Rotations per Minute.
-   * @param angleGearRatio    Angle gear ratio, the amount of times the motor as to turn for the wheel rotation.
-   * @return angle kV for feedforward.
-   */
-  public static double calculateAngleKV(
-      double optimalVoltage, double motorFreeSpeedRPM, double angleGearRatio)
-  {
-    double maxAngularVelocity = 360 * (motorFreeSpeedRPM / angleGearRatio) / 60; // deg/s
-    return optimalVoltage / maxAngularVelocity;
-  }
 
   /**
    * Calculate the meters per rotation for the integrated encoder. Calculation: 4in diameter wheels * pi [circumfrence]
@@ -61,6 +47,57 @@ public class SwerveMath
   {
     Rotation2d angleRotation = Rotation2d.fromDegrees(angle);
     return new Rotation2d(angleRotation.getCos(), angleRotation.getSin()).getDegrees();
+  }
+
+  /**
+   * Logical inverse of the {@link Pose2d}. Borrowed from 254:
+   * https://github.com/Team254/FRC-2022-Public/blob/b5da3c760b78d598b492e1cc51d8331c2ad50f6a/src/main/java/com/team254/lib/geometry/Pose2d.java
+   *
+   * @param transform Pose to transform.
+   */
+  public static Twist2d PoseLog(final Pose2d transform)
+  {
+    final double kEps          = 1E-9;
+    final double dtheta        = transform.getRotation().getRadians();
+    final double half_dtheta   = 0.5 * dtheta;
+    final double cos_minus_one = Math.cos(transform.getRotation().getRadians()) - 1.0;
+    double       halftheta_by_tan_of_halfdtheta;
+    if (Math.abs(cos_minus_one) < kEps)
+    {
+      halftheta_by_tan_of_halfdtheta = 1.0 - 1.0 / 12.0 * dtheta * dtheta;
+    } else
+    {
+      halftheta_by_tan_of_halfdtheta =
+          -(half_dtheta * Math.sin(transform.getRotation().getRadians())) / cos_minus_one;
+    }
+    final Translation2d translation_part =
+        transform
+            .getTranslation()
+            .rotateBy(new Rotation2d(halftheta_by_tan_of_halfdtheta, -half_dtheta));
+    return new Twist2d(translation_part.getX(), translation_part.getY(), dtheta);
+  }
+
+  /**
+   * Correction for swerve second order dynamics issue. Borrowed from 254:
+   * https://github.com/Team254/FRC-2022-Public/blob/main/src/main/java/com/team254/frc2022/subsystems/Drive.java#L325
+   * Discussion: https://www.chiefdelphi.com/t/whitepaper-swerve-drive-skew-and-second-order-kinematics/416964
+   *
+   * @param originalSpeeds Speed to be corrected.
+   */
+  public static ChassisSpeeds correctForDynamics(ChassisSpeeds originalSpeeds)
+  {
+//    return originalSpeeds;
+    final double LOOP_TIME_S = 0.02;
+    Pose2d futureRobotPose =
+        new Pose2d(
+            originalSpeeds.vxMetersPerSecond * LOOP_TIME_S,
+            originalSpeeds.vyMetersPerSecond * LOOP_TIME_S,
+            Rotation2d.fromRadians(originalSpeeds.omegaRadiansPerSecond * LOOP_TIME_S));
+    Twist2d twistForPose = PoseLog(futureRobotPose);
+    return new ChassisSpeeds(
+        twistForPose.dx / LOOP_TIME_S,
+        twistForPose.dy / LOOP_TIME_S,
+        twistForPose.dtheta / LOOP_TIME_S);
   }
 
   /**
@@ -311,43 +348,6 @@ public class SwerveMath
   }
 
   /**
-   * Optimize the angle of the {@link SwerveModuleState2} to be the closest angle to the current angle. Taken from Team
-   * 3181 at https://github.com/pittsfordrobotics/REVSwerve2023/blob/master/src/main/java/com/team3181/lib/swerve
-   * /SwerveOptimizer.java
-   *
-   * @param desiredState             Desired {@link SwerveModuleState2} to achieve.
-   * @param currentAngle             Current angle as a {@link Rotation2d}.
-   * @param secondOrderOffsetDegrees Offset calculated using 2nd order kinematics.
-   * @return Optimized {@link SwerveModuleState2}
-   */
-  public static SwerveModuleState2 optimize(SwerveModuleState2 desiredState, Rotation2d currentAngle,
-                                            double secondOrderOffsetDegrees)
-  {
-    double targetAngle = placeInAppropriate0To360Scope(currentAngle.getDegrees(),
-                                                       desiredState.angle.getDegrees() + secondOrderOffsetDegrees);
-    double targetSpeed = desiredState.speedMetersPerSecond;
-    double delta       = targetAngle - currentAngle.getDegrees();
-    if (Math.abs(delta) > 90)
-    {
-      targetSpeed = -targetSpeed;
-      if (delta > 90)
-      {
-        targetAngle -= 180;
-      } else
-      {
-        targetAngle += 180;
-      }
-    }
-    // Ensure outputted angle is positive.
-    while (targetAngle < 0)
-    {
-      targetAngle += 360;
-    }
-    return new SwerveModuleState2(targetSpeed, Rotation2d.fromDegrees(targetAngle),
-                                  desiredState.omegaRadPerSecond);
-  }
-
-  /**
    * Put an angle within the 360 deg scope of a reference. For example, given a scope reference of 756 degrees, assumes
    * the full scope is (720-1080), and places an angle of 22 degrees into it, returning 742 deg.
    *
@@ -390,21 +390,15 @@ public class SwerveMath
   /**
    * Perform anti-jitter within modules if the speed requested is too low.
    *
-   * @param moduleState     Current {@link SwerveModuleState2} requested.
-   * @param lastModuleState Previous {@link SwerveModuleState2} used.
+   * @param moduleState     Current {@link SwerveModuleState} requested.
+   * @param lastModuleState Previous {@link SwerveModuleState} used.
    * @param maxSpeed        Maximum speed of the modules, should be in {@link SwerveDriveConfiguration#maxSpeed}.
    */
-  public static void antiJitter(SwerveModuleState2 moduleState, SwerveModuleState2 lastModuleState, double maxSpeed)
+  public static void antiJitter(SwerveModuleState moduleState, SwerveModuleState lastModuleState, double maxSpeed)
   {
     if (Math.abs(moduleState.speedMetersPerSecond) <= (maxSpeed * 0.01))
     {
       moduleState.angle = lastModuleState.angle;
-//      moduleState.omegaRadPerSecond = lastModuleState.omegaRadPerSecond;
-      moduleState.omegaRadPerSecond = 0;
-    }
-    if (moduleState.equals(lastModuleState))
-    {
-      moduleState.omegaRadPerSecond = 0;
     }
   }
 }

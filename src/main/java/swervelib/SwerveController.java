@@ -2,6 +2,7 @@ package swervelib;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import swervelib.parser.SwerveControllerConfiguration;
@@ -24,7 +25,7 @@ public class SwerveController
   /**
    * Last angle as a scalar [-1,1] the robot was set to.
    */
-  public       double                        lastAngleScalar;
+  public       double                        lastAngleRadians;
   /**
    * {@link SlewRateLimiter} for movement in the X direction in meters/second.
    */
@@ -49,7 +50,7 @@ public class SwerveController
     config = cfg;
     thetaController = config.headingPIDF.createPIDController();
     thetaController.enableContinuousInput(-Math.PI, Math.PI);
-    lastAngleScalar = 0;
+    lastAngleRadians = 0;
   }
 
   /**
@@ -120,9 +121,9 @@ public class SwerveController
    */
   public double getJoystickAngle(double headingX, double headingY)
   {
-    lastAngleScalar =
-        withinHypotDeadband(headingX, headingY) ? lastAngleScalar : Math.atan2(headingX, headingY);
-    return lastAngleScalar;
+    lastAngleRadians =
+        withinHypotDeadband(headingX, headingY) ? lastAngleRadians : Math.atan2(headingX, headingY);
+    return lastAngleRadians;
   }
 
   /**
@@ -149,11 +150,11 @@ public class SwerveController
     // joystick input (hold
     // position when stick released).
     double angle =
-        withinHypotDeadband(headingX, headingY) ? lastAngleScalar : Math.atan2(headingX, headingY);
+        withinHypotDeadband(headingX, headingY) ? lastAngleRadians : new Rotation2d(headingX, headingY).getRadians();
     ChassisSpeeds speeds = getTargetSpeeds(xInput, yInput, angle, currentHeadingAngleRadians);
 
     // Used for the position hold feature
-    lastAngleScalar = angle;
+    lastAngleRadians = angle;
 
     return speeds;
   }
