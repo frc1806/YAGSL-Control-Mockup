@@ -39,13 +39,14 @@ public class DriverControls extends SubsystemBase {
      * Creates a DriverControls subsystem. The subsystem used to keep track of the
      * driver's controls based on the status of a sendable chooser.
      */
-    public DriverControls(DoubleSupplier robotHeadingSupplier) {
+    public DriverControls(DoubleSupplier robotHeadingSupplierRadians) {
         driverController = new SWATXboxController(Constants.kDriverPort, "Driver",
                 XboxControllerConfigValues.kDriverControllerDefaultConfig);
         operatorController = new SWATXboxController(Constants.kOperatorPort, "Operator",
                 XboxControllerConfigValues.kOperatorControllerDefaultConfig);
         debugController = new SWATXboxController(Constants.kDebugPort, "Debug",
                 XboxControllerConfigValues.kOperatorControllerDefaultConfig);
+        robotHeadingSupplier = robotHeadingSupplierRadians;
 
     }
 
@@ -105,32 +106,11 @@ public class DriverControls extends SubsystemBase {
         return angle;
     }
 
+    //Driver buttons/digital controls
 
-
-    /**
-     * Get drivetrain throttle control value
-     * 
-     * @return a {@link double} between -1 and 1
-     */
-
-
-    // Operator Controls
-
-    // Operator LED Control
-
-    // Debug Controls
-
-
-    /*
-    public double d_cymbalThrottle() {
-        return debugController.getLeftY();
+    public Trigger getLockPodsTrigger(){
+        return new Trigger(() ->driverController.getAButton());
     }
-    
-
-    public boolean d_wantCymbalManual() {
-        return d_cymbalThrottle() != 0;
-    }
-    */
 
     // Debug Tabs
 
@@ -182,7 +162,6 @@ public class DriverControls extends SubsystemBase {
 
         wasHeadingStickOutsideDeadzone = outOfDeadzone;
         driverController.updateConfig();
-        System.out.println("Rot:" + Units.radiansToDegrees(driverWantedRotationAngle));
     }
    
 
