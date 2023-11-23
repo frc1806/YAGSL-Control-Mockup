@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 
 import java.util.function.DoubleSupplier;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -62,6 +63,14 @@ public class DriverControls extends SubsystemBase {
         
     }
 
+    public Double getNonRadDriveX(){
+        return driverController.getLeftY();
+    }
+
+    public Double getNonRadDriveY(){
+        return -driverController.getLeftX();
+    }
+
     private Translation2d getWantedTransalation(double joystickFieldX, double joystickFieldY,double throttle){
         updateDriverWantedTranslationAngle(joystickFieldX, joystickFieldY);
         if(throttle == 0.0) return new Translation2d();
@@ -89,6 +98,10 @@ public class DriverControls extends SubsystemBase {
 
     public double getWantedRadDriveRobotAngle(){
         return driverWantedRotationAngle / Math.PI;
+    }
+
+    public Translation2d getWantedRobotPointingVector(){
+        return new Translation2d(1.0, new Rotation2d(driverWantedRotationAngle));
     }
 
 
