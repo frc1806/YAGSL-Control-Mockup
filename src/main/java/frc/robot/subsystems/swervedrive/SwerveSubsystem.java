@@ -262,6 +262,12 @@ public class SwerveSubsystem extends SubsystemBase
                                                         maximumSpeed);
   }
 
+  public ChassisSpeeds getTargetSpeedsFromPreScaledInputs(double xInput, double yInput, Rotation2d angle)
+  {
+    return swerveDrive.swerveController.getTargetSpeeds(xInput, yInput, angle.getRadians(), getHeading().getRadians(), maximumSpeed);
+  }
+
+
   /**
    * Gets the current field-relative velocity (x, y and omega) of the robot
    *
