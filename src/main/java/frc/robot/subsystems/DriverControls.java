@@ -64,7 +64,7 @@ public class DriverControls extends SubsystemBase {
     }
 
     public Double getNonRadDriveX(){
-        return driverController.getLeftY();
+        return -driverController.getLeftY();
     }
 
     public Double getNonRadDriveY(){
@@ -125,6 +125,9 @@ public class DriverControls extends SubsystemBase {
         return new Trigger(() ->driverController.getAButton());
     }
 
+    public Trigger getZeroGyroTrigger(){
+        return new Trigger(() -> driverController.getBButton());
+    }
     // Debug Tabs
 
     public boolean debugTabs() {
