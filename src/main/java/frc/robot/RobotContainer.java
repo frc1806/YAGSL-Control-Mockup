@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants.Drivebase;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.swervedrive.auto.Autos;
 import frc.robot.commands.swervedrive.drivebase.AbsoluteDrive;
@@ -37,9 +38,6 @@ public class RobotContainer
                                                                          "swerve/neo"));
 
   private final DriverControls driverControls = new DriverControls(() -> drivebase.getHeading().getRadians());
-
-
-
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
