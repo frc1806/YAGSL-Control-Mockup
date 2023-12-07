@@ -36,8 +36,8 @@ public class RobotContainer
   // The robot's subsystems and commands are defined here...
   private final SwerveSubsystem drivebase = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                          "swerve/neo"));
-
-  private final DriverControls driverControls = new DriverControls(() -> drivebase.getHeading().getRadians());
+  private final XboxController driveController = new XboxController(0);
+  //private final DriverControls driverControls = new DriverControls(() -> drivebase.getHeading().getRadians());
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
@@ -49,12 +49,11 @@ public class RobotContainer
                                                           // Applies deadbands and inverts controls because joysticks
                                                           // are back-right positive while robot
                                                           // controls are front-left positive
-                                                          () -> driverControls.getRadDriveWantedTranslation().getX(),
-                                                          () -> driverControls.getRadDriveWantedTranslation().getY(),
-                                                          () -> driverControls.getWantedRobotPointingVector().getX(),
-                                                          () -> driverControls.getWantedRobotPointingVector().getY());
-
-    AbsoluteFieldDrive closedFieldAbsoluteDrive = new AbsoluteFieldDrive(drivebase,
+                                                          () -> driveController.getLeftY(),
+                                                          () -> driveController.getLeftX(),
+                                                          () -> -driveController.getRightX(),
+                                                          () -> -driveController.getRightY());
+   /* AbsoluteFieldDrive closedFieldAbsoluteDrive = new AbsoluteFieldDrive(drivebase,
                                                                          () ->
                                                                              driverControls.getNonRadDriveX(),
                                                                          () -> driverControls.getNonRadDriveY(),
@@ -67,7 +66,8 @@ public class RobotContainer
     () -> driverControls.getRadDriveWantedTranslation().getX(),
     () -> driverControls.getRadDriveWantedTranslation().getY(),
     () -> driverControls.getWantedRadDriveRobotAngle(), () -> true);
-    drivebase.setDefaultCommand(closedFieldAbsoluteDrive);
+    */
+    drivebase.setDefaultCommand(closedAbsoluteDrive);
   }
 
   /**
@@ -80,8 +80,8 @@ public class RobotContainer
   private void configureBindings()
   {
     // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    driverControls.getLockPodsTrigger().whileTrue(new LockPods(drivebase));
-    driverControls.getZeroGyroTrigger().onTrue((new InstantCommand(drivebase::zeroGyro)));
+    new JoystickButton(driveController, 1).whileTrue(new LockPods(drivebase));
+    new JoystickButton(driveController, 2).onTrue((new InstantCommand(drivebase::zeroGyro)));
     //new JoystickButton(driverXbox, 3).onTrue(new InstantCommand(drivebase::addFakeVisionReading));
 //    new JoystickButton(driverXbox, 3).whileTrue(new RepeatCommand(new InstantCommand(drivebase::lock, drivebase)));
   }

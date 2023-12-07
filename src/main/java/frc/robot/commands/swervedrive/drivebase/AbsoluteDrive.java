@@ -69,6 +69,10 @@ public class AbsoluteDrive extends CommandBase
   public void execute()
   {
 
+    SmartDashboard.putNumber("AFDvX", vX.getAsDouble());
+    SmartDashboard.putNumber("AFDvY", vY.getAsDouble());
+    SmartDashboard.putNumber("AFDheadingVertical", headingVertical.getAsDouble());
+    SmartDashboard.putNumber("AFDheadingHorizontal", headingHorizontal.getAsDouble());
     // Get the desired chassis speeds based on a 2 joystick module.
     ChassisSpeeds desiredSpeeds = swerve.getTargetSpeeds(vX.getAsDouble(), vY.getAsDouble(),
                                                          headingHorizontal.getAsDouble(),

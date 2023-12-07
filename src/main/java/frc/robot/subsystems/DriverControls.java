@@ -97,7 +97,7 @@ public class DriverControls extends SubsystemBase {
     }
 
     public double getWantedRadDriveRobotAngle(){
-        return driverWantedRotationAngle / Math.PI;
+        return driverWantedRotationAngle;
     }
 
     public Translation2d getWantedRobotPointingVector(){
@@ -163,7 +163,7 @@ public class DriverControls extends SubsystemBase {
     public void periodic() {
         boolean outOfDeadzone = isRobotAngleJoystickOutsideDeadzone();
         if(DriverStation.isDisabled()){
-            driverWantedRotationAngle = robotHeadingSupplier.getAsDouble() % (2* Math.PI);
+            driverWantedRotationAngle = (robotHeadingSupplier.getAsDouble() % (2* Math.PI));
         }
         else{
             if(outOfDeadzone)
