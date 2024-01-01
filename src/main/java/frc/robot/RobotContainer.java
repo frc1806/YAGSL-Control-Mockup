@@ -49,8 +49,8 @@ public class RobotContainer
                                                           // Applies deadbands and inverts controls because joysticks
                                                           // are back-right positive while robot
                                                           // controls are front-left positive
-                                                          () -> driveController.getLeftY(),
-                                                          () -> driveController.getLeftX(),
+                                                          () -> -driveController.getLeftY(),
+                                                          () -> -driveController.getLeftX(),
                                                           () -> -driveController.getRightX(),
                                                           () -> -driveController.getRightY());
    /* AbsoluteFieldDrive closedFieldAbsoluteDrive = new AbsoluteFieldDrive(drivebase,
@@ -62,12 +62,15 @@ public class RobotContainer
                                                     () -> driverControls.getRadDriveWantedTranslation().getX(),
                                                     () -> driverControls.getRadDriveWantedTranslation().getY(),
                                                     () -> driverControls.getWantedRadDriveRobotAngle(), () -> true);
-    TeleopDrive closedFieldRel = new TeleopDrive(drivebase,
-    () -> driverControls.getRadDriveWantedTranslation().getX(),
-    () -> driverControls.getRadDriveWantedTranslation().getY(),
-    () -> driverControls.getWantedRadDriveRobotAngle(), () -> true);
+    
     */
-    drivebase.setDefaultCommand(closedAbsoluteDrive);
+                                                    TeleopDrive closedFieldRel = new TeleopDrive(drivebase,
+    () -> -driveController.getLeftY(),
+    () -> -driveController.getLeftX(),
+    () -> driveController.getRightX(),
+    () -> (driveController.getRightTriggerAxis() > 0.3));
+    
+    drivebase.setDefaultCommand(closedFieldRel);
   }
 
   /**
